@@ -23,7 +23,7 @@ Import-Module ActiveDirectory
 
 #list of OUs to check
 $userOUs = @(
-                "DC=contoso,DC=corp"  #for the love of god stop using *.local as domain names
+                "DC=contoso,DC=corp"
             )
 
 
@@ -171,16 +171,20 @@ $failures | Select-Object "Name", "DaysToExp", "PassExpDate", "EmailAddress", "T
 #create notification email for IT department
 $body = "First Notification:`t" + $firstnotifydate.ToString($dateformat) + "
 Daily Notification:`t" + $dailynotifydate.ToString($dateformat) + "
+
 Expired:`t`t" + $expireduserscount + "
 User Count:`t`t" + $totaluserscount + "
+
 Total Expiring:`t`t" + ($notifyusers.Count +$nonotifyuserscount)  + "
 Excluded by date:`t" + $nonotifyuserscount + "   #these users exluded because password expires between first notify and daily notify date
 Expiring to notify:`t" + $notifyusers.Count + "
 Expiring w/o Email:`t" + ($notifyusers.Count - $emailusers.Count) + "
 Email Attempts:`t`t" + $emailusers.Count + "
 Email Failures:`t`t" + $failures.Count + "
+
 Users Output to:`t`t" + $csvpath + "
 Email Failures Output to:`t" + $failcsvpath + "
+
 ***OU(s) scanned***`n"
 
 
@@ -205,3 +209,4 @@ if (-not $nostatusemail) {  #check for switch to avoid sending email
 
     Send-MailMessage -To $statusto -From $mailfrom -SmtpServer $mailserver -Port $mailserverport -Subject $subject -Body $body -Attachments @($csvpath, $failcsvpath)
 }
+
