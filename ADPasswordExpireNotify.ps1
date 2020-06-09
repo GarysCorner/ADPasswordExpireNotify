@@ -6,12 +6,12 @@ param (
         [string]$mailserver = '0.0.0.0',  #SMTP relay address
         [int]$mailserverport = 25,  #SMTP relay port (probably 25)
         [string]$mailfrom = 'no-reply@contoso.com',  #notification email sent from address
-        [string]$statusto = 'gbezet@contoso.com',  #address to send stats to
+        [string]$statusto = 'gary@contoso.com',  #address to send stats to
         [string]$csvbasename = 'UsrExpiringPass',
         [switch]$nostatusemail, #prevents status email from being sent
         [switch]$sendemails,  #you must specify on command line to send out emails, this prevents oopses
         [string]$dateformat = 'M/d/yyyy hh:mm tt', #date format for emails and console output
-        [string]$attachment = '.\HowToChangeMyPassword.pdf' #set the attachment to send, this is required but you can modify the script to take it out
+        [string]$attachment = '.\HowToChangeMyPassword.pdf' #set the attachment to send
         )
 
 $ErrorActionPreference = 'stop'
@@ -22,8 +22,14 @@ Import-Module ActiveDirectory
 
 
 #list of OUs to check
-$userOUs = "DC=Contoso,DC=local",
-           "DC=Contoso2,DC=local"
+$userOUs = @(
+                "DC=contoso,DC=corp"  #for the love of god stop using *.local as domain names
+            )
+
+
+
+
+
 
 $todaysdate = (Get-Date -Hour 0 -Minute 0 -Second 0 -Millisecond 0)
 
@@ -141,7 +147,7 @@ foreach ($user in $emailusers) {
 
         #try sending the email capture any failures
         try {
-            Send-MailMesssage -To $rcpt -From $mailfrom -SmtpServer $mailserver -Port $mailserverport -Subject $subject -Body $body -Attachments $attachment
+            Send-MailMessage -To $rcpt -From $mailfrom -SmtpServer $mailserver -Port $mailserverport -Subject $subject -Body $body -Attachments $attachment
         } catch {
             $user
         
@@ -165,20 +171,16 @@ $failures | Select-Object "Name", "DaysToExp", "PassExpDate", "EmailAddress", "T
 #create notification email for IT department
 $body = "First Notification:`t" + $firstnotifydate.ToString($dateformat) + "
 Daily Notification:`t" + $dailynotifydate.ToString($dateformat) + "
-
 Expired:`t`t" + $expireduserscount + "
 User Count:`t`t" + $totaluserscount + "
-
 Total Expiring:`t`t" + ($notifyusers.Count +$nonotifyuserscount)  + "
 Excluded by date:`t" + $nonotifyuserscount + "   #these users exluded because password expires between first notify and daily notify date
 Expiring to notify:`t" + $notifyusers.Count + "
 Expiring w/o Email:`t" + ($notifyusers.Count - $emailusers.Count) + "
 Email Attempts:`t`t" + $emailusers.Count + "
 Email Failures:`t`t" + $failures.Count + "
-
 Users Output to:`t`t" + $csvpath + "
 Email Failures Output to:`t" + $failcsvpath + "
-
 ***OU(s) scanned***`n"
 
 
@@ -203,4 +205,3 @@ if (-not $nostatusemail) {  #check for switch to avoid sending email
 
     Send-MailMessage -To $statusto -From $mailfrom -SmtpServer $mailserver -Port $mailserverport -Subject $subject -Body $body -Attachments @($csvpath, $failcsvpath)
 }
-
